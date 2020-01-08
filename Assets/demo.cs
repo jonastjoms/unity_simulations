@@ -20,7 +20,7 @@ class demo : MonoBehaviour
     public GameObject human5;
     public GameObject human6;
     public GameObject layingHuman;
-    public GameObject phoneHuman;
+    public GameObject sittingHuman;
     //public Animation phone;
     public GameObject dog;
     // Temporary:
@@ -32,40 +32,41 @@ class demo : MonoBehaviour
     GameObject tempHuman5;
     GameObject tempHuman6;
     GameObject tempLayingHuman;
-    GameObject tempPhoneHuman;
+    GameObject tempSittingHuman;
     GameObject tempDog;
-    public int human_count;
+    private int standingHumanCount;
 
     // Position variables:
     // Pepper
     public float pepperXPos;
     public float pepperYPos;
     public float pepperZPos;
-    public float pepperYRot;
+    public Quaternion pepperRot;
+    public int pepperArea;
     // 3 humans
-    private float human1XPos;
-    private float human1YPos;
-    private float human1ZPos;
-    private float human1YRot;
-    private float human2XPos;
-    private float human2YPos;
-    private float human2ZPos;
-    private float human2YRot;
-    private float human3XPos;
-    private float human3YPos;
-    private float human3ZPos;
-    private float human3YRot;
+    private float humanXPos;
+    private float humanYPos;
+    private float humanZPos;
+    private float humanYRot;
+    public int humanArea;
     // Animal
     private float animalXPos;
     private float animalYPos;
     private float animalZPos;
     private float animalYRot;
+    private int animalArea;
     // Children
     private float childXPos;
     private float childlYPos;
     private float childZPos;
     private float childRot;
-    public int area;
+    private int childArea;
+    // Group variables
+    private float groupXPos;
+    private float groupYPos;
+    private float groupZPos;
+    public int groupArea;
+
 
     // Variables for circle around Pepper
     [Range(0, 50)]
@@ -79,12 +80,14 @@ class demo : MonoBehaviour
     // CSV file for storing of features and screenshots
     private static string reportFileName = "features.csv";
     private static string reportSeparator = ",";
-    private static string[] reportHeaders = new string[16] {
+    private static string[] reportHeaders = new string[18] {
         "Number of people",
-        "Group of people?",
+        "Number of people in group",
+        "Group radius",
         "Distance to group",
-        "Robot within group?"
+        "Robot within group?",
         "Robot facing group?",
+        "Robot work radius",
         "Distance to closest human",
         "Distance to 2nd closest human",
         "Distance to 3rd closest human",
@@ -101,18 +104,20 @@ class demo : MonoBehaviour
     // Feauture Variables
     // For binary values 0 = False, 1 = True
     public int nPeople;
-    public int group;  // Binary
-    public float distGroup; // Euclidean distance to group, if no group -> 50
+    public int nPeopleGroup; // Number of people in group
+    public float groupRadius = 50;
+    public float distGroup = 50; // Euclidean distance to group, if no group -> 50
     public int robotWithinGroup;  // Binary
+    public float robotRadius; 
     public int facingGroup;  // Binary, if no group -> 0
-    public float distHuman1; // Euclidean distance to closest human, if no people -> 50
-    public float distHuman2; // Euclidean distance to 2nd closest human, if no people -> 50
-    public float distHuman3; // Euclidean distance to 3d closest human, if no people -> 50
+    public float distHuman1 = 50; // Euclidean distance to closest human, if no people -> 50
+    public float distHuman2 = 50; // Euclidean distance to 2nd closest human, if no people -> 50
+    public float distHuman3 = 50; // Euclidean distance to 3d closest human, if no people -> 50
     public int facingHuman1;  // Binary
     public int nChildren;
-    public float distChildren; // Euclidean distance to closest child, if no child -> 50
+    public float distChildren = 50; // Euclidean distance to closest child, if no child -> 50
     public int nAnimal;
-    public float distAnimal; // Euclidean distance to closest animal, if no animal -> 50
+    public float distAnimal = 50; // Euclidean distance to closest animal, if no animal -> 50
     public int phoneCall;  // Binary
     public int nPeopleSofa;
 
@@ -129,14 +134,23 @@ class demo : MonoBehaviour
         line.useWorldSpace = true;
 
         // Store human game objects
-        List<GameObject> objects = new List<GameObject>() {human1, human2, human3, human4, human5, human6, layingHuman, phoneHuman, dog};
-        List<GameObject> temps = new List<GameObject>() {tempHuman1, tempHuman2, tempHuman3, tempHuman4, tempHuman5, tempHuman6, tempLayingHuman, tempPhoneHuman, tempDog };
+        List<GameObject> objects = new List<GameObject>() {human1, human2, human3, human4, human5, human6, layingHuman, sittingHuman, dog};
+        List<GameObject> temps = new List<GameObject>() {tempHuman1, tempHuman2, tempHuman3, tempHuman4, tempHuman5, tempHuman6, tempLayingHuman, tempSittingHuman, tempDog };
         // Attach animation
         //phone = phoneHuman.gameObject.GetComponent<Animation>();
         // Create csv file and initiate headers:
         CreateReport();
         // Start program
         StartCoroutine(SpawnRandom(objects, temps));
+    }
+
+    private void DestroyPrefabsInScene(string tagName)
+    {
+        GameObject[] prefabs = GameObject.FindGameObjectsWithTag(tagName);
+        foreach (GameObject prefab in prefabs)
+        {
+            Destroy(prefab);
+        }
     }
 
     private (float, float) spawnPosition(int room_area)
@@ -166,9 +180,36 @@ class demo : MonoBehaviour
         return (xPos, zPos);
     }
 
+    private (float, float) groupPosition(int room_area)
+    {
+        float xPos;
+        float zPos;
+        if (room_area == 0)
+        {
+            xPos = -3f;
+            zPos = -3f;
+        }
+        else if (room_area == 1)
+        {
+            xPos = -4f;
+            zPos = -2.5f;
+        }
+        else if (room_area == 2)
+        {
+            xPos = -5.5f;
+            zPos = -4f;
+        }
+        else
+        {
+            xPos = -7.5f;
+            zPos = -1.5f;
+        }
+        return (xPos, zPos);
+    }
+
     private static void AppendToReport(string[] strings)
     {
-        using (StreamWriter sw = File.AppendText("Assets/data/features.csv"))
+        using (StreamWriter sw = File.AppendText("data/features.csv"))
         {
             string finalString = "";
             for (int i = 0; i < strings.Length; i++)
@@ -186,7 +227,7 @@ class demo : MonoBehaviour
 
     private static void CreateReport()
     {
-        using (StreamWriter sw = File.CreateText("Assets/data/features.csv"))
+        using (StreamWriter sw = File.CreateText("data/features.csv"))
         {
             string finalString = "";
             for (int i = 0; i < reportHeaders.Length; i++)
@@ -202,69 +243,263 @@ class demo : MonoBehaviour
         }
     }
 
+    private Vector3 groupCircle(Vector3 center, float radius, float ang)
+    {
+        Vector3 pos;
+        pos.x = center.x + radius * Mathf.Sin(ang * Mathf.Deg2Rad);
+        pos.y = center.y;
+        pos.z = center.z + radius * Mathf.Cos(ang * Mathf.Deg2Rad);
+        return pos;
+    }
+
     IEnumerator SpawnRandom(List<GameObject> objects, List<GameObject> temps)
     {
         while (count < 10)
         {
-            // Determine if group or not
-            group = Random.Range(0, 1);
-
-
-            // Instantiate Pepper
-            // Define spawn position
-            area = Random.Range(0, 4);
-            (pepperXPos, pepperZPos) = spawnPosition(area);
-            pepperYPos = -0.921f;
-            pepperYRot = Random.Range(0, 360);
-            Vector3 pepperPos = new Vector3(pepperXPos, pepperYPos, pepperZPos);
-            Quaternion pepperRot = Quaternion.Euler(0, pepperYRot, 0);
-            pepper.gameObject.transform.localScale = new Vector3(15, 15, 15);
-            tempPepper = Instantiate(pepper, pepperPos, pepperRot);
-            // Draw line around Pepper
-            float x;
-            float y = -0.8f;
-            float z;
-            float angle = 20f;
-            xradius = Random.Range(0.5f, 3f);
-            yradius = xradius;
-            for (int i = 0; i < (segments + 1); i++)
+            // Determine number of standing people:
+            standingHumanCount = Random.Range(1, 7);
+            // Determine if group or not, only if 3 or more people
+            if (standingHumanCount > 2)
             {
-                x = pepperXPos + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
-                z = pepperZPos + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
-                line.SetPosition(i, new Vector3(x, y, z));
-                angle += (360f / segments);
+                nPeopleGroup = Random.Range(0, standingHumanCount);
             }
 
-            // Spawn humans
-            // Get number of humans to spawn
-            human_count = Random.Range(0, 7);
-            for (int i = 0; i < human_count; i++)
+            // If group, choose area and place out people
+            if (nPeopleGroup > 2) // We have a group
             {
-                area = Random.Range(0, 4);
-                (humanXPos, humanZPos) = spawnPosition(area);
+                // Determine group area
+                groupArea = Random.Range(0, 4);
+                // Determmine center position
+                (groupXPos, groupZPos) = groupPosition(groupArea);
+                groupYPos = -0.921f;
+                Vector3 groupCenter = new Vector3(groupXPos, groupYPos, groupZPos);
+                // Sample group radius
+                groupRadius = Random.Range(0.1f, 1.5f);
+                // Spawn people in group
+                for (int i = 0; i <= nPeopleGroup; i++){
+                    float angle = i * (360f / nPeopleGroup);
+                    Vector3 pos = groupCircle(groupCenter, groupRadius, angle);
+                    Vector3 relativePos = groupCenter - pos;
+                    Quaternion rot = Quaternion.LookRotation(relativePos, Vector3.up);
+                    temps[i] = Instantiate(objects[i], pos, rot);
+                }
+
+                // Determine if Pepper is in group
+                robotWithinGroup = Random.Range(0, 2);
+                // Spawn Pepper
+                if (robotWithinGroup == 1)
+                {
+                    distGroup = 0f;
+                    facingGroup = 1;
+                    Vector3 pepperPos = groupCenter; // Group center
+                    pepperRot = Quaternion.Euler(0, Random.Range(0, 360), 0);
+                    pepper.gameObject.transform.localScale = new Vector3(15, 15, 15);
+                    tempPepper = Instantiate(pepper, pepperPos, pepperRot);
+
+                    // Draw line around Pepper
+                    float x;
+                    float y = -0.8f;
+                    float z;
+                    float angle = 20f;
+                    xradius = Random.Range(0.5f, 3f);
+                    yradius = xradius;
+                    for (int i = 0; i < (segments + 1); i++)
+                    {
+                        x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                        z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                        line.SetPosition(i, new Vector3(x, y, z));
+                        angle += (360f / segments);
+                    }
+                }
+                else
+                {
+                    // Instantiate Pepper
+                    // Define spawn position
+                    pepperArea = Random.Range(0, 4);
+                    // Make sure not same area as group
+                    while (pepperArea == groupArea)
+                    {
+                        pepperArea = Random.Range(0, 4);
+                    }
+                    (pepperXPos, pepperZPos) = spawnPosition(pepperArea);
+                    pepperYPos = -0.921f;
+                    Vector3 pepperPos = new Vector3(pepperXPos, pepperYPos, pepperZPos);
+                    // Should Pepper face group or not
+                    facingGroup = Random.Range(0, 2);
+                    if (facingGroup == 1)
+                    {
+                        Vector3 relativePos = groupCenter - pepperPos;
+                        pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                    }
+                    else
+                    {
+                        Vector3 relativePos = groupCenter - pepperPos;
+                        pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                        Vector3 temp_rot = pepperRot.eulerAngles;
+                        temp_rot[1] = temp_rot[1] + 180;
+                        pepperRot = Quaternion.Euler(temp_rot);
+
+                    }
+                    
+                    pepper.gameObject.transform.localScale = new Vector3(15, 15, 15);
+                    //tempPepper = Instantiate(pepper, pepperPos, pepperRot);
+                    Instantiate(pepper, pepperPos, pepperRot);
+                    // Determine distance to group
+                    distGroup = Vector3.Distance(groupCenter, pepperPos);
+                   
+                    // Draw line around Pepper
+                    float x;
+                    float y = -0.8f;
+                    float z;
+                    float angle = 20f;
+                    xradius = Random.Range(0.5f, 3f);
+                    yradius = xradius;
+                    for (int i = 0; i < (segments + 1); i++)
+                    {
+                        x = pepperXPos + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                        z = pepperZPos + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                        line.SetPosition(i, new Vector3(x, y, z));
+                        angle += (360f / segments);
+                    }
+                }
+
+            }
+            else
+            {
+                nPeopleGroup = 0;
+                groupRadius = 50;
+                // Instantiate Pepper
+                // Define spawn position
+                pepperArea = Random.Range(0, 4);
+                (pepperXPos, pepperZPos) = spawnPosition(pepperArea);
+                pepperYPos = -0.921f;
+                Vector3 pepperPos = new Vector3(pepperXPos, pepperYPos, pepperZPos);
+                // Should Pepper face group or not
+                facingGroup = 0;
+                pepper.gameObject.transform.localScale = new Vector3(15, 15, 15);
+                tempPepper = Instantiate(pepper, pepperPos, pepperRot);
+                distGroup = 50;
+
+                // Draw line around Pepper
+                float x;
+                float y = -0.8f;
+                float z;
+                float angle = 20f;
+                xradius = Random.Range(0.5f, 3f);
+                yradius = xradius;
+                for (int i = 0; i < (segments + 1); i++)
+                {
+                    x = pepperXPos + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                    z = pepperZPos + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                    line.SetPosition(i, new Vector3(x, y, z));
+                    angle += (360f / segments);
+                }
+            }
+
+            nPeople = nPeopleGroup;
+            robotRadius = xradius;
+
+            // Now spawn the rest of the humans:
+            // First normal people standing
+            for (int i = nPeople; i < standingHumanCount; i++)
+            {
+                // If there's a group, avoid that area:
+                humanArea = Random.Range(0, 4);
+                if (nPeopleGroup > 0)
+                {
+                    while (humanArea == groupArea)
+                    {
+                        humanArea = Random.Range(0, 4);
+                    }
+                }
+
+                (humanXPos, humanZPos) = spawnPosition(humanArea);
                 humanYPos = -0.921f;
                 humanYRot = Random.Range(0, 360);
                 Vector3 humanPos = new Vector3(humanXPos, humanYPos, humanZPos);
                 Quaternion humanRot = Quaternion.Euler(0, humanYRot, 0);
                 temps[i] = Instantiate(objects[i], humanPos, humanRot);
             }
+            nPeople = standingHumanCount;
+
+            // Spawn potential sofa people
+            // Have people in sofa roughly every 5th scene:
+            if (Random.Range(0, 5) == 1)
+            {
+                // 1 or 2 in the sofa
+                nPeopleSofa = Random.Range(1, 3);
+                // Spawn laying if only 1
+                humanYRot = -89.62f;
+                Vector3 humanPos = new Vector3(-5.7f, -0.29f, -0.27f);
+                Quaternion humanRot = Quaternion.Euler(0, humanYRot, 0);
+                objects[6].gameObject.transform.localScale = new Vector3(1, 1, 1);
+                temps[6] = Instantiate(objects[6], humanPos, humanRot);
+                if (nPeopleSofa > 1)
+                {
+                    humanYRot = -97.7f;
+                    humanPos = new Vector3(-5.259f, -0.721f, -2.11f);
+                    humanRot = Quaternion.Euler(0, humanYRot, 0);
+                    objects[7].gameObject.transform.localScale = new Vector3(1, 1, 1);
+                    temps[7] = Instantiate(objects[7], humanPos, humanRot);
+                }
+
+            }
+            else
+            {
+                nPeopleSofa = 0;
+            }
+            nPeople += nPeopleSofa;
+
+            // Spawn potential animals
+            // Have animals roughly every 5th scene:
+            if (Random.Range(0, 5) == 1)
+            {
+                nAnimal = 1;
+                // If there's a group, avoid that area:
+                animalArea = Random.Range(0, 4);
+                (animalXPos, animalZPos) = spawnPosition(animalArea);
+                animalYPos = -0.921f;
+                animalYRot = Random.Range(0, 360);
+                Vector3 animalPos = new Vector3(animalXPos, animalYPos, animalZPos);
+                Quaternion animalRot = Quaternion.Euler(0, animalYRot, 0);
+                objects[8].gameObject.transform.localScale = new Vector3(70, 70, 70);
+                temps[8] = Instantiate(objects[8], animalPos, animalRot);
+            }
+
 
             // Take screenshot and save to path
-            ScreenCapture.CaptureScreenshot("Assets/data/screenshots/context_" + count.ToString() + ".png");
+            ScreenCapture.CaptureScreenshot("data/screenshots/context_" + count.ToString() + ".png");
             // Write features to csv
-            AppendToReport(new string[5] {
-                5.ToString(),
-                1.ToString(),
-                3.ToString(),
-                1.ToString(),
-                count.ToString() });
+            AppendToReport(new string[18] {
+                nPeople.ToString(),
+                nPeopleGroup.ToString(),
+                groupRadius.ToString(),
+                distGroup.ToString(),
+                robotWithinGroup.ToString(),
+                facingGroup.ToString(),
+                robotRadius.ToString(),
+                distHuman1.ToString(),
+                distHuman2.ToString(),
+                distHuman3.ToString(),
+                facingHuman1.ToString(),
+                nChildren.ToString(),
+                distChildren.ToString(),
+                nAnimal.ToString(),
+                distAnimal.ToString(),
+                phoneCall.ToString(),
+                nPeopleSofa.ToString(),
+                count.ToString(),});
+
+
             // Remove all gameobjects
+            // Pepper
             Destroy(tempPepper, 0.1f);
-            for (int i = 0; i < human_count; i++)
+            for (int i = 0; i < 9; i++)
             {
                 Destroy(temps[i], 0.1f);
             }
-            yield return new WaitForSeconds(0.2f);
+
+            yield return new WaitForSeconds(1f);
             count += 1;
         }
 
