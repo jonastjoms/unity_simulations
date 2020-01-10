@@ -24,6 +24,7 @@ class demo : MonoBehaviour
     public GameObject child1;
     public GameObject child2;
     public GameObject dog;
+
     // Temporary:
     GameObject tempPepper;
     GameObject tempHuman1;
@@ -38,6 +39,7 @@ class demo : MonoBehaviour
     GameObject tempChild2;
     GameObject tempDog;
     private int standingHumanCount;
+    private int closestHuman;
 
     // Position variables:
     // Pepper
@@ -72,7 +74,6 @@ class demo : MonoBehaviour
 
     // Variables for objects instantiated:
     public int instantatedStandingHumans;
-    public int agentsInScene;
 
     // Variables for circle around Pepper
     [Range(0, 50)]
@@ -125,6 +126,7 @@ class demo : MonoBehaviour
     public int nAnimal;
     public float distAnimal = 50; // Euclidean distance to closest animal, if no animal -> 50
     public int nPeopleSofa;
+    public int agentsInScene;
 
 
     private void Start()
@@ -140,7 +142,7 @@ class demo : MonoBehaviour
 
         // Store human game objects
         List<GameObject> objects = new List<GameObject>() {human1, human2, human3, human4, human5, human6, layingHuman, sittingHuman, child1, child2, dog};
-        List<GameObject> temps = new List<GameObject>() {tempHuman1, tempHuman2, tempHuman3, tempHuman4, tempHuman5, tempHuman6, tempLayingHuman, tempSittingHuman, tempChild1, tempChild2, tempDog };
+        List<GameObject> temps = new List<GameObject>() {tempHuman1, tempHuman2, tempHuman3, tempHuman4, tempHuman5, tempHuman6, tempLayingHuman, tempSittingHuman, tempChild1, tempChild2, tempDog};
         // Attach animation
         //phone = phoneHuman.gameObject.GetComponent<Animation>();
         // Create csv file and initiate headers:
@@ -149,7 +151,7 @@ class demo : MonoBehaviour
         StartCoroutine(SpawnRandom(objects, temps));
     }
 
-    private (float, float) spawnPosition(int room_area)
+    private (float, float) SpawnPosition(int room_area)
     {
         float xPos;
         float zPos;
@@ -176,7 +178,7 @@ class demo : MonoBehaviour
         return (xPos, zPos);
     }
 
-    private (float, float) groupPosition(int room_area)
+    private (float, float) GroupPosition(int room_area)
     {
         float xPos;
         float zPos;
@@ -239,7 +241,7 @@ class demo : MonoBehaviour
         }
     }
 
-    private Vector3 groupCircle(Vector3 center, float radius, float ang)
+    private Vector3 GroupCircle(Vector3 center, float radius, float ang)
     {
         Vector3 pos;
         pos.x = center.x + radius * Mathf.Sin(ang * Mathf.Deg2Rad);
@@ -248,17 +250,17 @@ class demo : MonoBehaviour
         return pos;
     }
 
-    private bool invalidPosition(Vector3 pos, List<GameObject> temps, Vector3 pepperPos)
+    private bool InvalidPosition(Vector3 pos, List<GameObject> temps, Vector3 pepperPos)
     {
         // Check if colliding with Pepper
-        if (Vector3.Distance(pos, pepperPos) < 0.1)
+        if (Vector3.Distance(pos, pepperPos) < 0.4)
         {
             return true;
         }
          // Check if colliding with standing humans
         for (int i = 0; i < instantatedStandingHumans; i++)
         {
-            if (Vector3.Distance(pos, temps[i].gameObject.transform.position) < 0.1)
+            if (Vector3.Distance(pos, temps[i].gameObject.transform.position) < 0.4)
                 {
                     return true;
                 }
@@ -267,7 +269,7 @@ class demo : MonoBehaviour
         // Check if colliding with children
         for (int i = 0; i < nChildren; i++)
         {
-            if (Vector3.Distance(pos, temps[i+8].gameObject.transform.position) < 0.1)
+            if (Vector3.Distance(pos, temps[i+8].gameObject.transform.position) < 0.4)
             {
                 return true;
             }
@@ -276,7 +278,7 @@ class demo : MonoBehaviour
         // Check if colliding with animal
         for (int i = 0; i < nAnimal; i++)
         {
-            if (Vector3.Distance(pos, temps[i + 10].gameObject.transform.position) < 0.1)
+            if (Vector3.Distance(pos, temps[i + 10].gameObject.transform.position) < 0.4)
             {
                 return true;
             }
@@ -294,6 +296,10 @@ class demo : MonoBehaviour
             agentsInScene = 0;
             nChildren = 0;
             nAnimal = 0;
+            distHuman1 = 50;
+            distHuman2 = 50;
+            distHuman3 = 50;
+              
             // Determine number of standing people:
             standingHumanCount = Random.Range(1, 7);
             // Determine if group or not, only if 3 or more people
@@ -308,15 +314,21 @@ class demo : MonoBehaviour
                 // Determine group area
                 groupArea = Random.Range(0, 4);
                 // Determmine center position
-                (groupXPos, groupZPos) = groupPosition(groupArea);
+                (groupXPos, groupZPos) = GroupPosition(groupArea);
                 groupYPos = -0.921f;
                 Vector3 groupCenter = new Vector3(groupXPos, groupYPos, groupZPos);
                 // Sample group radius
-                groupRadius = Random.Range(0.3f, 1.5f);
+                if (groupArea == 1)
+                {
+                    groupRadius = Random.Range(0.5f, 0.8f);
+                } else
+                {
+                    groupRadius = Random.Range(0.5f, 1f);
+                }
                 // Spawn people in group
                 for (int i = 0; i < nPeopleGroup; i++){
                     float angle = i * (360f / nPeopleGroup);
-                    Vector3 pos = groupCircle(groupCenter, groupRadius, angle);
+                    Vector3 pos = GroupCircle(groupCenter, groupRadius, angle);
                     Vector3 relativePos = groupCenter - pos;
                     Quaternion rot = Quaternion.LookRotation(relativePos, Vector3.up);
                     temps[i] = Instantiate(objects[i], pos, rot);
@@ -362,7 +374,7 @@ class demo : MonoBehaviour
                     {
                         pepperArea = Random.Range(0, 4);
                     }
-                    (pepperXPos, pepperZPos) = spawnPosition(pepperArea);
+                    (pepperXPos, pepperZPos) = SpawnPosition(pepperArea);
                     pepperYPos = -0.921f;
                     Vector3 pepperPos = new Vector3(pepperXPos, pepperYPos, pepperZPos);
                     // Should Pepper face group or not
@@ -412,7 +424,7 @@ class demo : MonoBehaviour
                 // Instantiate Pepper
                 // Define spawn position
                 pepperArea = Random.Range(0, 4);
-                (pepperXPos, pepperZPos) = spawnPosition(pepperArea);
+                (pepperXPos, pepperZPos) = SpawnPosition(pepperArea);
                 pepperYPos = -0.921f;
                 Vector3 pepperPos = new Vector3(pepperXPos, pepperYPos, pepperZPos);
                 // Should Pepper face group or not
@@ -455,13 +467,13 @@ class demo : MonoBehaviour
                     }
                 }
 
-                (humanXPos, humanZPos) = spawnPosition(humanArea);
+                (humanXPos, humanZPos) = SpawnPosition(humanArea);
                 humanYPos = -0.921f;
                 Vector3 humanPos = new Vector3(humanXPos, humanYPos, humanZPos);
                 // Check if something's already there
-                while (invalidPosition(humanPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
+                while (InvalidPosition(humanPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
                     {
-                    (humanXPos, humanZPos) = spawnPosition(humanArea);
+                    (humanXPos, humanZPos) = SpawnPosition(humanArea);
                     humanYPos = -0.921f;
                     humanPos = new Vector3(humanXPos, humanYPos, humanZPos);
                 }
@@ -509,13 +521,13 @@ class demo : MonoBehaviour
             {
                 // Spawn first child
                 childArea = Random.Range(0, 4);
-                (childXPos, childZPos) = spawnPosition(childArea);
+                (childXPos, childZPos) = SpawnPosition(childArea);
                 childYPos = -0.921f;
                 Vector3 childPos = new Vector3(childXPos, childYPos, childZPos);
                 // Check if something's already there
-                while (invalidPosition(childPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
+                while (InvalidPosition(childPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
                 {
-                    (childXPos, childZPos) = spawnPosition(childArea);
+                    (childXPos, childZPos) = SpawnPosition(childArea);
                     childYPos = -0.921f;
                     childPos = new Vector3(childXPos, childYPos, childZPos);
                 }
@@ -531,13 +543,13 @@ class demo : MonoBehaviour
                 {
                     // Spawn second child
                     childArea = Random.Range(0, 4);
-                    (childXPos, childZPos) = spawnPosition(childArea);
+                    (childXPos, childZPos) = SpawnPosition(childArea);
                     childYPos = -0.921f;
                     childPos = new Vector3(childXPos, childYPos, childZPos);
                     // Check if something's already there
-                    while (invalidPosition(childPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
+                    while (InvalidPosition(childPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
                     {
-                        (childXPos, childZPos) = spawnPosition(childArea);
+                        (childXPos, childZPos) = SpawnPosition(childArea);
                         childYPos = -0.921f;
                         childPos = new Vector3(childXPos, childYPos, childZPos);
                     }
@@ -555,7 +567,7 @@ class demo : MonoBehaviour
             }
             else
             {
-                distChildren = 0;
+                distChildren = 50;
                 nChildren = 0;
             }
             nPeople += nChildren;
@@ -564,15 +576,14 @@ class demo : MonoBehaviour
             // Have animals roughly every 5th scene:
             if (Random.Range(0, 5) == 1)
             {
-                // If there's a group, avoid that area:
                 animalArea = Random.Range(0, 4);
-                (animalXPos, animalZPos) = spawnPosition(animalArea);
+                (animalXPos, animalZPos) = SpawnPosition(animalArea);
                 animalYPos = -0.921f;
                 Vector3 animalPos = new Vector3(animalXPos, animalYPos, animalZPos);
                 // Check if something's already there
-                while (invalidPosition(animalPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
+                while (InvalidPosition(animalPos, temps, new Vector3(pepperXPos, pepperYPos, pepperZPos)))
                 {
-                    (animalXPos, animalZPos) = spawnPosition(animalArea);
+                    (animalXPos, animalZPos) = SpawnPosition(animalArea);
                     animalYPos = -0.921f;
                     animalPos = new Vector3(animalXPos, animalYPos, animalZPos);
                 }
@@ -583,15 +594,104 @@ class demo : MonoBehaviour
                 agentsInScene += 1;
                 nAnimal = 1;
                 distAnimal = Vector3.Distance(animalPos, new Vector3(pepperXPos, pepperYPos, pepperZPos));
-            } else
+            }
+            else
             {
-                distAnimal = 0;
+                distAnimal = 50;
                 nAnimal = 0;
             }
 
+            // Find distance to the 3 closest humans:
+            // Iterate over all standing humans, not children or animals!
+            for (int i = 0; i < instantatedStandingHumans; i++)
+            {
+                if (Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)) < distHuman3)
+                {
+                    if (Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)) < distHuman2)
+                    {
+                        if (Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)) < distHuman1)
+                        {
+                            distHuman3 = distHuman2;
+                            distHuman2 = distHuman1;
+                            distHuman1 = Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                            closestHuman = i;
+                        }
+                        else
+                        {
+                            distHuman3 = distHuman2;
+                            distHuman2 = Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                        }
+                    }
+                    else
+                    {
+                        distHuman3 = Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                    }
+                }
+                if (Math.Abs(distHuman3 - 50) < 1)
+                {
+                    Debug.Log(Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)));
+                }
+            }
+            // Then iterate over children
+            for (int i = 0; i < nChildren; i++)
+            {
+                if (Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)) < distHuman3)
+                {
+                    if (Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)) < distHuman2)
+                    {
+                        if (Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)) < distHuman1)
+                        {
+                            distHuman3 = distHuman2;
+                            distHuman2 = distHuman1;
+                            distHuman1 = Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                            closestHuman = i+8;
+                        }
+                        else
+                        {
+                            distHuman3 = distHuman2;
+                            distHuman2 = Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                        }
+                    }
+                    else
+                    {
+                        distHuman3 = Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                    }
+                }
+            }
 
-            // Take screenshot and save to path
-            ScreenCapture.CaptureScreenshot("data/screenshots/context_" + count.ToString() + ".png");
+            // Determine wether Pepper should face closest human
+            if (facingGroup == 1)
+            {
+                facingHuman1 = 1;
+            }
+            else
+            {
+                facingHuman1 = 0;
+            }
+            // Face closest human roughly every 2nd scene when not group:
+            if (Random.Range(0, 3) == 1 && facingHuman1 == 0)
+            {
+                Vector3 closestHumanPos = temps[closestHuman].gameObject.transform.position;
+                Vector3 relativePos = closestHumanPos - tempPepper.gameObject.transform.position;
+                pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                tempPepper.gameObject.transform.rotation = pepperRot;
+                facingHuman1 = 1;
+
+            } else
+            {
+                Vector3 closestHumanPos = temps[closestHuman].gameObject.transform.position;
+                Vector3 relativePos = closestHumanPos - tempPepper.gameObject.transform.position;
+                pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                Vector3 temp_rot = pepperRot.eulerAngles;
+                temp_rot[1] = temp_rot[1] + 180;
+                pepperRot = Quaternion.Euler(temp_rot);
+                tempPepper.gameObject.transform.rotation = pepperRot;
+                facingHuman1 = 0;
+            }
+
+                //
+                // Take screenshot and save to path
+                ScreenCapture.CaptureScreenshot("data/screenshots/context_" + count.ToString() + ".png");
             // Write features to csv
             AppendToReport(new string[18] {
                 count.ToString(),
@@ -623,7 +723,7 @@ class demo : MonoBehaviour
                 Destroy(temps[i], 0.1f);
             }
 
-            yield return new WaitForSeconds(0.5f);
+            yield return new WaitForSeconds(0.2f);
             count += 1;
         }
 
