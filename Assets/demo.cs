@@ -94,12 +94,19 @@ class demo : MonoBehaviour
     public int usingCircle;
     public int usingAarrow;
 
+    // Text and music variables
+    public Text myText;
+    public GameObject sound;
+    GameObject tempSound;
 
     // CSV file for storing of features and screenshots
     private static string reportFileName = "features.csv";
     private static string reportSeparator = ",";
-    private static string[] reportHeaders = new string[22] {
+    private static string[] reportHeaders = new string[26] {
         "Stamp",
+        "File Path",
+        "Using circle",
+        "Using arrow",
         "Number of people",
         "Number of people in group",
         "Group radius",
@@ -120,6 +127,7 @@ class demo : MonoBehaviour
         "Number of animals",
         "Distance to closest animal",
         "Number of people sitting/laying in sofa?",
+        " Music playing?",
         "Number of agents in scene"
     };
 
@@ -145,6 +153,7 @@ class demo : MonoBehaviour
     public int nAnimal;
     public float distAnimal = 50; // Euclidean distance to closest animal, if no animal -> 50
     public int nPeopleSofa;
+    public int musicPlaying;  // Binary
     public int agentsInScene;
 
 
@@ -162,8 +171,8 @@ class demo : MonoBehaviour
         // Store human game objects
         List<GameObject> objects = new List<GameObject>() {human1, human2, human3, human4, human5, human6, layingHuman, sittingHuman, child1, child2, dog};
         List<GameObject> temps = new List<GameObject>() {tempHuman1, tempHuman2, tempHuman3, tempHuman4, tempHuman5, tempHuman6, tempLayingHuman, tempSittingHuman, tempChild1, tempChild2, tempDog};
-        // Attach animation
-        //phone = phoneHuman.gameObject.GetComponent<Animation>();
+        // Text
+        myText = myText.GetComponent<Text>();
         // Create csv file and initiate headers:
         CreateReport();
         // Start program
@@ -309,7 +318,7 @@ class demo : MonoBehaviour
 
     IEnumerator SpawnRandom(List<GameObject> objects, List<GameObject> temps)
     {
-        while (count < 20)
+        while (count < 100)
         {
             instantatedStandingHumans = 0;
             agentsInScene = 0;
@@ -406,7 +415,6 @@ class demo : MonoBehaviour
                     else
                     {
                         // Find vector going out from pepper:
-                        Debug.Log(tempPepper.gameObject.transform.forward);
                         Vector3 tempArrowRot = tempPepper.gameObject.transform.forward;
                         Vector3 pos = pepperPos + (0.5f * tempArrowRot);
                         // Arrow direction with respect to pepper is zero
@@ -495,7 +503,6 @@ class demo : MonoBehaviour
                     else
                     {
                         // Find vector going out from pepper:
-                        Debug.Log(tempPepper.gameObject.transform.forward);
                         Vector3 tempArrowRot = tempPepper.gameObject.transform.forward;
                         Vector3 pos = pepperPos + (0.5f * tempArrowRot);
                         // Arrow direction with respect to pepper is zero
@@ -565,7 +572,6 @@ class demo : MonoBehaviour
                 else
                 {
                     // Find vector going out from pepper:
-                    Debug.Log(tempPepper.gameObject.transform.forward);
                     Vector3 tempArrowRot = tempPepper.gameObject.transform.forward;
                     Vector3 pos = pepperPos + (0.5f * tempArrowRot);
                     // Arrow direction with respect to pepper is zero
@@ -874,17 +880,37 @@ class demo : MonoBehaviour
                 facingHuman1 = 0;
             }
 
+            // Add potential music
+            if (Random.Range(0,10) == 1)
+            {
+                myText.text = "Music is playing";
+                // Spawn laying if only 1
+                Vector3 soundPos = new Vector3(-6.756f, 2.511f, -3.901f);
+                Vector3 soundRot1 = new Vector3(0, 133, 0);
+                Quaternion soundRot = Quaternion.Euler(soundRot1);
+                sound.gameObject.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
+                tempSound = Instantiate(sound, soundPos, soundRot);
+
+            }
+            else
+            {
+                myText.text = "";
+            }
             // Construct filename:
-            string filename = usingCircle.ToString() + "_" + usingAarrow.ToString() + "_" + count.ToString() + "_" + nPeople.ToString() + "_" + nPeopleGroup.ToString() + "_" + groupRadius.ToString() + "_" + distGroup.ToString() + "_" + robotWithinGroup.ToString()
+            string filename = count.ToString() + "_" + usingCircle.ToString() + "_" + usingAarrow.ToString() + "_" +  nPeople.ToString() + "_" + nPeopleGroup.ToString() + "_" + groupRadius.ToString() + "_" + distGroup.ToString() + "_" + robotWithinGroup.ToString()
                 + "_" + facingGroup.ToString() + "_" + robotRadius.ToString() + "_" + robotArrowDireaction.ToString() + "_" + distHuman1.ToString() + "_" + distHuman2.ToString() + "_" + distHuman3.ToString()
                 + "_" + directionHuman1.ToString() + "_" + directionHuman2.ToString() + "_" + directionHuman3.ToString() + "_" + facingHuman1.ToString() + "_" + nChildren.ToString() + "_" + distChildren.ToString()
                 + "_" + nAnimal.ToString() + "_" + nPeopleSofa.ToString() + "_" + agentsInScene.ToString();
 
             // Take screenshot and save to path
             ScreenCapture.CaptureScreenshot("data/screenshots/" + filename + ".png");
+            string filePath = "data/screenshots/" + filename + ".png";
             // Write features to csv
-            AppendToReport(new string[22] {
+            AppendToReport(new string[26] {
                 count.ToString(),
+                filePath,
+                usingCircle.ToString(),
+                usingAarrow.ToString(),
                 nPeople.ToString(),
                 nPeopleGroup.ToString(),
                 groupRadius.ToString(),
@@ -905,6 +931,7 @@ class demo : MonoBehaviour
                 nAnimal.ToString(),
                 distAnimal.ToString(),
                 nPeopleSofa.ToString(),
+                musicPlaying.ToString(),
                 agentsInScene.ToString() });
 
 
@@ -913,6 +940,8 @@ class demo : MonoBehaviour
             Destroy(tempPepper, 0.1f);
             // Arrow
             Destroy(tempArrow, 0.1f);
+            // Sound
+            Destroy(tempSound, 0.1f);
 
             for (int i = 0; i < 11; i++)
             {
