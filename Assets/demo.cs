@@ -38,8 +38,6 @@ class demo : MonoBehaviour
     GameObject tempChild1;
     GameObject tempChild2;
     GameObject tempDog;
-    private int standingHumanCount;
-    private int closestHuman;
 
     // Position variables:
     // Pepper
@@ -53,6 +51,9 @@ class demo : MonoBehaviour
     private float humanYPos;
     private float humanZPos;
     private float humanYRot;
+    private int closestHuman;
+    private int closest2Human;
+    private int closest3Human;
     public int humanArea;
     // Animal
     private float animalXPos;
@@ -74,6 +75,7 @@ class demo : MonoBehaviour
 
     // Variables for objects instantiated:
     public int instantatedStandingHumans;
+    private int standingHumanCount;
 
     // Variables for circle around Pepper
     [Range(0, 50)]
@@ -84,10 +86,19 @@ class demo : MonoBehaviour
     public float yradius;
     LineRenderer line;
 
+    // Variables for arrow
+    public GameObject arrow;
+    GameObject tempArrow;
+
+    // Arrow or circle
+    public int usingCircle;
+    public int usingAarrow;
+
+
     // CSV file for storing of features and screenshots
     private static string reportFileName = "features.csv";
     private static string reportSeparator = ",";
-    private static string[] reportHeaders = new string[18] {
+    private static string[] reportHeaders = new string[22] {
         "Stamp",
         "Number of people",
         "Number of people in group",
@@ -96,9 +107,13 @@ class demo : MonoBehaviour
         "Robot within group?",
         "Robot facing group?",
         "Robot work radius",
+        "Robot arrow direction", // With respect to Pepper, always zero when in use
         "Distance to closest human",
         "Distance to 2nd closest human",
         "Distance to 3rd closest human",
+        "Direction to closest human",
+        "Direction to 2nd closest human",
+        "Direction to 3rd closest human",
         "Facing closest human?",
         "Number of children",
         "Distance to closest child",
@@ -115,11 +130,15 @@ class demo : MonoBehaviour
     public float groupRadius = 50;
     public float distGroup = 50; // Euclidean distance to group, if no group -> 50
     public int robotWithinGroup;  // Binary
-    public float robotRadius; 
+    public float robotRadius;
+    public float robotArrowDireaction;
     public int facingGroup;  // Binary, if no group -> 0
     public float distHuman1 = 50; // Euclidean distance to closest human, if no people -> 50
     public float distHuman2 = 50; // Euclidean distance to 2nd closest human, if no people -> 50
     public float distHuman3 = 50; // Euclidean distance to 3d closest human, if no people -> 50
+    public float directionHuman1 = 1000; // Vector direction to closest human, if no people -> 1000
+    public float directionHuman2 = 1000; // Euclidean distance to 2nd closest human, if no people -> 50
+    public float directionHuman3 = 1000; // Euclidean distance to 3d closest human, if no people -> 50
     public int facingHuman1;  // Binary
     public int nChildren;
     public float distChildren = 50; // Euclidean distance to closest child, if no child -> 50
@@ -299,6 +318,21 @@ class demo : MonoBehaviour
             distHuman1 = 50;
             distHuman2 = 50;
             distHuman3 = 50;
+            directionHuman1 = 1000;
+            directionHuman2 = 1000;
+            directionHuman3 = 1000;
+            if (Random.Range(0,2) == 1)
+            {
+                usingCircle = 1;
+                usingAarrow = 0;
+                robotArrowDireaction = 1000;
+            }
+            else
+            {
+                usingCircle = 0;
+                usingAarrow = 1;
+                robotRadius = 50;
+            }
               
             // Determine number of standing people:
             standingHumanCount = Random.Range(1, 7);
@@ -321,12 +355,14 @@ class demo : MonoBehaviour
                 if (groupArea == 1)
                 {
                     groupRadius = Random.Range(0.5f, 0.8f);
-                } else
+                }
+                else
                 {
                     groupRadius = Random.Range(0.5f, 1f);
                 }
                 // Spawn people in group
-                for (int i = 0; i < nPeopleGroup; i++){
+                for (int i = 0; i < nPeopleGroup; i++)
+                {
                     float angle = i * (360f / nPeopleGroup);
                     Vector3 pos = GroupCircle(groupCenter, groupRadius, angle);
                     Vector3 relativePos = groupCenter - pos;
@@ -349,20 +385,58 @@ class demo : MonoBehaviour
                     tempPepper = Instantiate(pepper, pepperPos, pepperRot);
                     agentsInScene += 1;
 
-                    // Draw line around Pepper
-                    float x;
-                    float y = -0.8f;
-                    float z;
-                    float angle = 20f;
-                    xradius = Random.Range(0.5f, 3f);
-                    yradius = xradius;
-                    for (int i = 0; i < (segments + 1); i++)
+                    // Draw line  or arrow around Pepper
+                    if (usingCircle == 1)
                     {
-                        x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
-                        z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
-                        line.SetPosition(i, new Vector3(x, y, z));
-                        angle += (360f / segments);
+                        float x;
+                        float y = -0.8f;
+                        float z;
+                        float angle = 20f;
+                        xradius = Random.Range(0.5f, 3f);
+                        yradius = xradius;
+                        robotRadius = xradius;
+                        for (int i = 0; i < (segments + 1); i++)
+                        {
+                            x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                            z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                            line.SetPosition(i, new Vector3(x, y, z));
+                            angle += (360f / segments);
+                        }
                     }
+                    else
+                    {
+                        // Find vector going out from pepper:
+                        Debug.Log(tempPepper.gameObject.transform.forward);
+                        Vector3 tempArrowRot = tempPepper.gameObject.transform.forward;
+                        Vector3 pos = pepperPos + (0.5f * tempArrowRot);
+                        // Arrow direction with respect to pepper is zero
+                        robotArrowDireaction = 0;
+                        Quaternion arrowRot = tempPepper.gameObject.transform.rotation;
+                        Vector3 temp_rot = pepperRot.eulerAngles;
+                        temp_rot[0] -= 90;
+                        temp_rot[1] += 90;
+                        pos[1] = -0.8f;
+                        arrowRot = Quaternion.Euler(temp_rot);
+                        arrow.gameObject.transform.localScale = new Vector3(0.8f, 0.2f, 0.5f);
+                        tempArrow = Instantiate(arrow, pos, arrowRot);
+
+                        // Move circle out oof view
+                        float x;
+                        float y = -3f;
+                        float z;
+                        float angle = 20f;
+                        xradius = Random.Range(0.5f, 3f);
+                        yradius = xradius;
+                        robotRadius = xradius;
+                        for (int i = 0; i < (segments + 1); i++)
+                        {
+                            x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                            z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                            line.SetPosition(i, new Vector3(x, y, z));
+                            angle += (360f / segments);
+                        }
+                    }
+
                 }
                 else
                 {
@@ -393,29 +467,65 @@ class demo : MonoBehaviour
                         pepperRot = Quaternion.Euler(temp_rot);
 
                     }
-                    
+
                     pepper.gameObject.transform.localScale = new Vector3(15, 15, 15);
                     tempPepper = Instantiate(pepper, pepperPos, pepperRot);
                     agentsInScene += 1;
                     // Determine distance to group
                     distGroup = Vector3.Distance(groupCenter, pepperPos);
-                   
-                    // Draw line around Pepper
-                    float x;
-                    float y = -0.8f;
-                    float z;
-                    float angle = 20f;
-                    xradius = Random.Range(0.5f, 3f);
-                    yradius = xradius;
-                    for (int i = 0; i < (segments + 1); i++)
+
+                    // Draw line  or arrow around Pepper
+                    if (usingCircle == 1)
                     {
-                        x = pepperXPos + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
-                        z = pepperZPos + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
-                        line.SetPosition(i, new Vector3(x, y, z));
-                        angle += (360f / segments);
+                        float x;
+                        float y = -0.8f;
+                        float z;
+                        float angle = 20f;
+                        xradius = Random.Range(0.5f, 3f);
+                        yradius = xradius;
+                        robotRadius = xradius;
+                        for (int i = 0; i < (segments + 1); i++)
+                        {
+                            x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                            z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                            line.SetPosition(i, new Vector3(x, y, z));
+                            angle += (360f / segments);
+                        }
+                    }
+                    else
+                    {
+                        // Find vector going out from pepper:
+                        Debug.Log(tempPepper.gameObject.transform.forward);
+                        Vector3 tempArrowRot = tempPepper.gameObject.transform.forward;
+                        Vector3 pos = pepperPos + (0.5f * tempArrowRot);
+                        // Arrow direction with respect to pepper is zero
+                        robotArrowDireaction = 0;
+                        Quaternion arrowRot = tempPepper.gameObject.transform.rotation;
+                        Vector3 temp_rot = pepperRot.eulerAngles;
+                        temp_rot[0] -= 90;
+                        temp_rot[1] += 90;
+                        pos[1] = -0.8f;
+                        arrowRot = Quaternion.Euler(temp_rot);
+                        arrow.gameObject.transform.localScale = new Vector3(0.8f, 0.2f, 0.5f);
+                        tempArrow = Instantiate(arrow, pos, arrowRot);
+
+                        // Move circle out of view
+                        float x;
+                        float y = -3f;
+                        float z;
+                        float angle = 20f;
+                        xradius = Random.Range(0.5f, 3f);
+                        yradius = xradius;
+                        robotRadius = xradius;
+                        for (int i = 0; i < (segments + 1); i++)
+                        {
+                            x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                            z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                            line.SetPosition(i, new Vector3(x, y, z));
+                            angle += (360f / segments);
+                        }
                     }
                 }
-
             }
             else
             {
@@ -434,24 +544,60 @@ class demo : MonoBehaviour
                 agentsInScene += 1;
                 distGroup = 50;
 
-                // Draw line around Pepper
-                float x;
-                float y = -0.8f;
-                float z;
-                float angle = 20f;
-                xradius = Random.Range(0.5f, 3f);
-                yradius = xradius;
-                for (int i = 0; i < (segments + 1); i++)
+                // Draw line  or arrow around Pepper
+                if (usingCircle == 1)
                 {
-                    x = pepperXPos + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
-                    z = pepperZPos + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
-                    line.SetPosition(i, new Vector3(x, y, z));
-                    angle += (360f / segments);
+                    float x;
+                    float y = -0.8f;
+                    float z;
+                    float angle = 20f;
+                    xradius = Random.Range(0.5f, 3f);
+                    yradius = xradius;
+                    robotRadius = xradius;
+                    for (int i = 0; i < (segments + 1); i++)
+                    {
+                        x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                        z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                        line.SetPosition(i, new Vector3(x, y, z));
+                        angle += (360f / segments);
+                    }
+                }
+                else
+                {
+                    // Find vector going out from pepper:
+                    Debug.Log(tempPepper.gameObject.transform.forward);
+                    Vector3 tempArrowRot = tempPepper.gameObject.transform.forward;
+                    Vector3 pos = pepperPos + (0.5f * tempArrowRot);
+                    // Arrow direction with respect to pepper is zero
+                    robotArrowDireaction = 0;
+                    Quaternion arrowRot = tempPepper.gameObject.transform.rotation;
+                    Vector3 temp_rot = pepperRot.eulerAngles;
+                    temp_rot[0] -= 90;
+                    temp_rot[1] += 90;
+                    pos[1] = -0.8f;
+                    arrowRot = Quaternion.Euler(temp_rot);
+                    arrow.gameObject.transform.localScale = new Vector3(0.8f, 0.2f, 0.5f);
+                    tempArrow = Instantiate(arrow, pos, arrowRot);
+
+                    // Move circle out oof view
+                    float x;
+                    float y = -3f;
+                    float z;
+                    float angle = 20f;
+                    xradius = Random.Range(0.5f, 3f);
+                    yradius = xradius;
+                    robotRadius = xradius;
+                    for (int i = 0; i < (segments + 1); i++)
+                    {
+                        x = pepperPos[0] + Mathf.Sin(Mathf.Deg2Rad * angle) * xradius;
+                        z = pepperPos[2] + Mathf.Cos(Mathf.Deg2Rad * angle) * yradius;
+                        line.SetPosition(i, new Vector3(x, y, z));
+                        angle += (360f / segments);
+                    }
                 }
             }
 
             nPeople = nPeopleGroup;
-            robotRadius = xradius;
 
             // Now spawn the rest of the humans:
             // First normal people standing
@@ -611,25 +757,47 @@ class demo : MonoBehaviour
                     {
                         if (Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)) < distHuman1)
                         {
+                            // Update distance
                             distHuman3 = distHuman2;
                             distHuman2 = distHuman1;
+                            directionHuman3 = directionHuman2;
+                            directionHuman2 = directionHuman1;
                             distHuman1 = Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
                             closestHuman = i;
+                            // Update direction
+                            Vector3 closestHumanPos = temps[i].gameObject.transform.position;
+                            Vector3 relativePos = closestHumanPos - tempPepper.gameObject.transform.position;
+                            pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                            Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                            directionHuman1 = temp_rot[1];
                         }
                         else
                         {
+                            // Update distance
                             distHuman3 = distHuman2;
+                            directionHuman3 = directionHuman2;
                             distHuman2 = Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                            closest2Human = i;
+                            // Update direction
+                            Vector3 closest2HumanPos = temps[i].gameObject.transform.position;
+                            Vector3 relativePos = closest2HumanPos - tempPepper.gameObject.transform.position;
+                            pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                            Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                            directionHuman2 = temp_rot[1];
                         }
                     }
                     else
                     {
+                        // Update distance
                         distHuman3 = Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                        closest3Human = i;
+                        // Update direction
+                        Vector3 closest3HumanPos = temps[i].gameObject.transform.position;
+                        Vector3 relativePos = closest3HumanPos - tempPepper.gameObject.transform.position;
+                        pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                        Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                        directionHuman3 = temp_rot[1];
                     }
-                }
-                if (Math.Abs(distHuman3 - 50) < 1)
-                {
-                    Debug.Log(Vector3.Distance(temps[i].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos)));
                 }
             }
             // Then iterate over children
@@ -643,24 +811,61 @@ class demo : MonoBehaviour
                         {
                             distHuman3 = distHuman2;
                             distHuman2 = distHuman1;
+                            directionHuman3 = directionHuman2;
+                            directionHuman2 = directionHuman1;
                             distHuman1 = Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
                             closestHuman = i+8;
+                            // Update direction
+                            Vector3 closestHumanPos = temps[i+8].gameObject.transform.position;
+                            Vector3 relativePos = closestHumanPos - tempPepper.gameObject.transform.position;
+                            pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                            Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                            directionHuman1 = temp_rot[1];
                         }
                         else
                         {
                             distHuman3 = distHuman2;
+                            directionHuman3 = directionHuman2;
                             distHuman2 = Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                            closest2Human = i + 8;
+                            // Update direction
+                            Vector3 closest2HumanPos = temps[i + 8].gameObject.transform.position;
+                            Vector3 relativePos = closest2HumanPos - tempPepper.gameObject.transform.position;
+                            pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                            Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                            directionHuman2 = temp_rot[1];
                         }
                     }
                     else
                     {
                         distHuman3 = Vector3.Distance(temps[i+8].gameObject.transform.position, new Vector3(pepperXPos, pepperYPos, pepperZPos));
+                        closest3Human = i + 8;
+                        // Update direction
+                        Vector3 closest3HumanPos = temps[i + 8].gameObject.transform.position;
+                        Vector3 relativePos = closest3HumanPos - tempPepper.gameObject.transform.position;
+                        pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                        Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                        directionHuman3 = temp_rot[1];
                     }
                 }
             }
 
-            // Determine wether Pepper should face closest human
-            if (facingGroup == 1)
+            // Make sure we only have positive angles
+            if (directionHuman1 < 0)
+            {
+                directionHuman1 += 360;
+            }
+            if (directionHuman2 < 0)
+            {
+                directionHuman2 += 360;
+            }
+            if (directionHuman3 < 0)
+            {
+                directionHuman3 += 360;
+            }
+
+            // Determmine wether pepper is facing closest human
+            if (directionHuman1 < 45)
             {
                 facingHuman1 = 1;
             }
@@ -668,32 +873,17 @@ class demo : MonoBehaviour
             {
                 facingHuman1 = 0;
             }
-            // Face closest human roughly every 2nd scene when not group:
-            if (Random.Range(0, 3) == 1 && facingHuman1 == 0)
-            {
-                Vector3 closestHumanPos = temps[closestHuman].gameObject.transform.position;
-                Vector3 relativePos = closestHumanPos - tempPepper.gameObject.transform.position;
-                pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
-                tempPepper.gameObject.transform.rotation = pepperRot;
-                facingHuman1 = 1;
 
-            } else
-            {
-                Vector3 closestHumanPos = temps[closestHuman].gameObject.transform.position;
-                Vector3 relativePos = closestHumanPos - tempPepper.gameObject.transform.position;
-                pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
-                Vector3 temp_rot = pepperRot.eulerAngles;
-                temp_rot[1] = temp_rot[1] + 180;
-                pepperRot = Quaternion.Euler(temp_rot);
-                tempPepper.gameObject.transform.rotation = pepperRot;
-                facingHuman1 = 0;
-            }
+            // Construct filename:
+            string filename = usingCircle.ToString() + "_" + usingAarrow.ToString() + "_" + count.ToString() + "_" + nPeople.ToString() + "_" + nPeopleGroup.ToString() + "_" + groupRadius.ToString() + "_" + distGroup.ToString() + "_" + robotWithinGroup.ToString()
+                + "_" + facingGroup.ToString() + "_" + robotRadius.ToString() + "_" + robotArrowDireaction.ToString() + "_" + distHuman1.ToString() + "_" + distHuman2.ToString() + "_" + distHuman3.ToString()
+                + "_" + directionHuman1.ToString() + "_" + directionHuman2.ToString() + "_" + directionHuman3.ToString() + "_" + facingHuman1.ToString() + "_" + nChildren.ToString() + "_" + distChildren.ToString()
+                + "_" + nAnimal.ToString() + "_" + nPeopleSofa.ToString() + "_" + agentsInScene.ToString();
 
-                //
-                // Take screenshot and save to path
-                ScreenCapture.CaptureScreenshot("data/screenshots/context_" + count.ToString() + ".png");
+            // Take screenshot and save to path
+            ScreenCapture.CaptureScreenshot("data/screenshots/" + filename + ".png");
             // Write features to csv
-            AppendToReport(new string[18] {
+            AppendToReport(new string[22] {
                 count.ToString(),
                 nPeople.ToString(),
                 nPeopleGroup.ToString(),
@@ -702,9 +892,13 @@ class demo : MonoBehaviour
                 robotWithinGroup.ToString(),
                 facingGroup.ToString(),
                 robotRadius.ToString(),
+                robotArrowDireaction.ToString(),
                 distHuman1.ToString(),
                 distHuman2.ToString(),
                 distHuman3.ToString(),
+                directionHuman1.ToString(),
+                directionHuman2.ToString(),
+                directionHuman3.ToString(),
                 facingHuman1.ToString(),
                 nChildren.ToString(),
                 distChildren.ToString(),
@@ -717,6 +911,8 @@ class demo : MonoBehaviour
             // Remove all gameobjects
             // Pepper
             Destroy(tempPepper, 0.1f);
+            // Arrow
+            Destroy(tempArrow, 0.1f);
 
             for (int i = 0; i < 11; i++)
             {
@@ -729,4 +925,6 @@ class demo : MonoBehaviour
 
     }
 }
+
+
 
