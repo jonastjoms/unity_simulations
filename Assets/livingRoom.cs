@@ -11,7 +11,7 @@ using Random = UnityEngine.Random;
 class livingRoom : MonoBehaviour
 {
     public int count;
-    // Initialize all game objects:
+    // Initialize all game object:
     public GameObject[] humans;
     public GameObject pepper;
     public GameObject human1;
@@ -129,7 +129,7 @@ class livingRoom : MonoBehaviour
         "Number of animals",
         "Distance to closest animal",
         "Number of people sitting/laying in sofa?",
-        " Music playing?",
+        "Music playing?",
         "Number of agents in scene"
     };
 
@@ -321,7 +321,7 @@ class livingRoom : MonoBehaviour
 
     IEnumerator SpawnRandom(List<GameObject> objects, List<GameObject> temps)
     {
-        while (count < 10)
+        while (count < 10000)
         {
             instantatedStandingHumans = 0;
             agentsInScene = 0;
@@ -753,11 +753,9 @@ class livingRoom : MonoBehaviour
 
             // Find distance to the 3 closest humans:
             // Iterate over all standing humans, not children or animals!
-            
+
             for (int i = 0; i < instantatedStandingHumans; i++)
             {
-                Debug.Log(instantatedStandingHumans);
-                Debug.Log(Vector3.Distance(temps[i].gameObject.transform.position, tempPepper.gameObject.transform.position));
                 if (Vector3.Distance(temps[i].gameObject.transform.position, tempPepper.gameObject.transform.position) < distHuman3)
                 {
                     if (Vector3.Distance(temps[i].gameObject.transform.position, tempPepper.gameObject.transform.position) < distHuman2)
@@ -814,7 +812,6 @@ class livingRoom : MonoBehaviour
             // Then iterate over children
             for (int i = 0; i < nChildren; i++)
             {
-                Debug.Log(Vector3.Distance(temps[i+8].gameObject.transform.position, tempPepper.gameObject.transform.position));
                 if (Vector3.Distance(temps[i+8].gameObject.transform.position, tempPepper.gameObject.transform.position) < distHuman3)
                 {
                     if (Vector3.Distance(temps[i+8].gameObject.transform.position, tempPepper.gameObject.transform.position) < distHuman2)
@@ -898,7 +895,7 @@ class livingRoom : MonoBehaviour
                 robotFacingHuman1 = 0;
             }
 
-            // Determine wether closest human is facing pepper  
+            // Determine wether closest human is facing pepper
             if (Mathf.Abs(directionRobotHuman1) < 45 || Mathf.Abs(directionRobotHuman1) > 320)
             {
                 human1FacingRobot = 1;
@@ -911,7 +908,7 @@ class livingRoom : MonoBehaviour
             {
                 human1FacingRobot = 0;
             }
-            
+
 
             // Add potential music
             if (Random.Range(0,10) == 1)
