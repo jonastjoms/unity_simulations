@@ -321,7 +321,7 @@ class livingRoom : MonoBehaviour
 
     IEnumerator SpawnRandom(List<GameObject> objects, List<GameObject> temps)
     {
-        while (count < 10000)
+        while (count < 5000)
         {
             instantatedStandingHumans = 0;
             agentsInScene = 0;
@@ -863,24 +863,81 @@ class livingRoom : MonoBehaviour
                 }
             }
 
-            // Make sure we only have positive angles
-            if (directionHuman1 < 0)
+            // Then iterate over sofa people
+            for (int i = 0; i < nPeopleSofa; i++)
             {
-                directionHuman1 += 360;
-            }
-            if (directionHuman2 < 0)
-            {
-                directionHuman2 += 360;
-            }
-            if (directionHuman3 < 0)
-            {
-                directionHuman3 += 360;
-            }
-            if (directionRobotHuman1 < 0)
-            {
-                directionRobotHuman1 += 360;
+                if (Vector3.Distance(temps[i + 6].gameObject.transform.position, tempPepper.gameObject.transform.position) < distHuman3)
+                {
+                    if (Vector3.Distance(temps[i + 6].gameObject.transform.position, tempPepper.gameObject.transform.position) < distHuman2)
+                    {
+                        if (Vector3.Distance(temps[i + 6].gameObject.transform.position, tempPepper.gameObject.transform.position) < distHuman1)
+                        {
+                            distHuman3 = distHuman2;
+                            distHuman2 = distHuman1;
+                            directionHuman3 = directionHuman2;
+                            directionHuman2 = directionHuman1;
+                            distHuman1 = Vector3.Distance(temps[i + 6].gameObject.transform.position, tempPepper.gameObject.transform.position);
+                            closestHuman = i + 6;
+                            // Update direction
+                            Vector3 closestHumanPos = temps[i + 6].gameObject.transform.position;
+                            Vector3 relativePos = closestHumanPos - tempPepper.gameObject.transform.position;
+                            pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                            Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                            directionHuman1 = temp_rot[1];
+                            // Find closest humans rotation as well
+                            Quaternion closestHumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
+                            temp_rot = closestHumanRot.eulerAngles - temps[i + 6].gameObject.transform.rotation.eulerAngles;
+                            directionRobotHuman1 = temp_rot[1];
+                        }
+                        else
+                        {
+                            distHuman3 = distHuman2;
+                            directionHuman3 = directionHuman2;
+                            distHuman2 = Vector3.Distance(temps[i + 6].gameObject.transform.position, tempPepper.gameObject.transform.position);
+                            closest2Human = i + 6;
+                            // Update direction
+                            Vector3 closest2HumanPos = temps[i + 6].gameObject.transform.position;
+                            Vector3 relativePos = closest2HumanPos - tempPepper.gameObject.transform.position;
+                            pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                            Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                            directionHuman2 = temp_rot[1];
+                        }
+                    }
+                    else
+                    {
+                        distHuman3 = Vector3.Distance(temps[i + 6].gameObject.transform.position, tempPepper.gameObject.transform.position);
+                        closest3Human = i + 6;
+                        // Update direction
+                        Vector3 closest3HumanPos = temps[i + 6].gameObject.transform.position;
+                        Vector3 relativePos = closest3HumanPos - tempPepper.gameObject.transform.position;
+                        pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
+                        Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
+                        directionHuman3 = temp_rot[1];
+                    }
+                }
             }
 
+            // Make sure we only have positive angles
+            if (directionHuman1 < 0)
+                {
+                    directionHuman1 += 360;
+                }
+           
+            if (directionHuman2 < 0)
+                {
+                    directionHuman2 += 360;
+                }
+            
+            if (directionHuman3 < 0)
+                {
+                    directionHuman3 += 360;
+                }
+            if (directionRobotHuman1 < 0)
+                {
+                    directionRobotHuman1 += 360;
+                }
+
+            
             // Determmine wether pepper is facing closest human
             if (Mathf.Abs(directionHuman1) < 45 || Mathf.Abs(directionHuman1) > 320)
             {
@@ -909,6 +966,15 @@ class livingRoom : MonoBehaviour
                 human1FacingRobot = 0;
             }
 
+            // Account for the case when there is not enugh people
+            if (directionHuman1 == 1000)
+            {
+                robotFacingHuman1 = 0;
+            }
+            if (directionRobotHuman1 == 1000)
+            {
+                human1FacingRobot = 0;
+            }
 
             // Add potential music
             if (Random.Range(0,10) == 1)
@@ -970,18 +1036,18 @@ class livingRoom : MonoBehaviour
 
             // Remove all gameobjects
             // Pepper
-            Destroy(tempPepper, 0.1f);
+            Destroy(tempPepper, 0.05f);
             // Arrow
-            Destroy(tempArrow, 0.1f);
+            Destroy(tempArrow, 0.05f);
             // Sound
-            Destroy(tempSound, 0.1f);
+            Destroy(tempSound, 0.05f);
 
             for (int i = 0; i < 11; i++)
             {
-                Destroy(temps[i], 0.1f);
+                Destroy(temps[i], 0.05f);
             }
 
-            yield return new WaitForSeconds(0.2f);
+            yield return new WaitForSeconds(0.1f);
             count += 1;
         }
 
