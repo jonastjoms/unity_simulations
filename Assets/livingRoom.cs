@@ -103,7 +103,7 @@ class livingRoom : MonoBehaviour
     // CSV file for storing of features and screenshots
     private static string reportFileName = "features.csv";
     private static string reportSeparator = ",";
-    private static string[] reportHeaders = new string[27] {
+    private static string[] reportHeaders = new string[43] {
         "Stamp",
         "File Path",
         "Using circle",
@@ -123,15 +123,33 @@ class livingRoom : MonoBehaviour
         "Direction to 3rd closest human",
         "Direction from closest human to robot",
         "Robot facing closest human?",
+        "Robot facing 2nd closest human?",
+        "Robot facing 3rd closest human?",
         "Closest human facing robot?",
+        "2nd closest human facing robot?",
+        "3d closest human facing robot?",
         "Number of children",
         "Distance to closest child",
         "Number of animals",
         "Distance to closest animal",
         "Number of people sitting/laying in sofa?",
         "Music playing?",
-        "Number of agents in scene"
-    };
+        "Number of agents in scene",
+        "PosRot1",
+        "PosRot2",
+        "PosRot3",
+        "PosRot4",
+        "PosRot5",
+        "PosRot6",
+        "PosRot7",
+        "PosRot8",
+        "PosRot9",
+        "PosRot10",
+        "PosRot11",
+        "PosRotPepper"};
+
+
+
 
     // Feauture Variables
     // For binary values 0 = False, 1 = True
@@ -148,9 +166,15 @@ class livingRoom : MonoBehaviour
     public float directionHuman1 = 1000; // Vector direction to closest human, if no people -> 1000
     public float directionHuman2 = 1000; // Vector direction to 2nd closest human, if no people -> 1000
     public float directionHuman3 = 1000; // Vector direction to 3d closest human, if no people -> 1000
-    public float directionRobotHuman1 = 1000; // Vector direction to robot from closest human, if no people -> 1000
+    public float directionRobotFromHuman1 = 1000; // Vector direction to robot from closest human, if no people -> 1000
+    public float directionRobotFromHuman2 = 1000;
+    public float directionRobotFromHuman3 = 1000;
     public int robotFacingHuman1;  // Binary
+    public int robotFacingHuman2;  // Binary
+    public int robotFacingHuman3;  // Binary
     public int human1FacingRobot;  // Binary
+    public int human2FacingRobot;  // Binary
+    public int human3FacingRobot;  // Binary
     public int nChildren;
     public float distChildren = 50; // Euclidean distance to closest child, if no child -> 50
     public int nAnimal;
@@ -174,6 +198,7 @@ class livingRoom : MonoBehaviour
         // Store human game objects
         List<GameObject> objects = new List<GameObject>() {human1, human2, human3, human4, human5, human6, layingHuman, sittingHuman, child1, child2, dog};
         List<GameObject> temps = new List<GameObject>() {tempHuman1, tempHuman2, tempHuman3, tempHuman4, tempHuman5, tempHuman6, tempLayingHuman, tempSittingHuman, tempChild1, tempChild2, tempDog};
+
         // Text
         myText = myText.GetComponent<Text>();
         // Create csv file and initiate headers:
@@ -319,10 +344,43 @@ class livingRoom : MonoBehaviour
 
     }
 
+    private int facingOrNot(float direction)
+    {
+        if(direction > 999)
+        {
+            return 0;
+        }
+        if (direction < 45 || direction > 320)
+        {
+            return 1;
+        }
+        else
+        {
+            return 0;
+        }
+    }
+
+    private float fixAngle(float direction)
+    {
+        if (direction < 0)
+        {
+            direction += 360;
+            return direction;
+        }
+        else
+        {
+            return direction;
+        }
+
+    }
+
+
+
     IEnumerator SpawnRandom(List<GameObject> objects, List<GameObject> temps)
     {
-        while (count < 5000)
+        while (count < 20)
         {
+
             instantatedStandingHumans = 0;
             agentsInScene = 0;
             nChildren = 0;
@@ -333,9 +391,15 @@ class livingRoom : MonoBehaviour
             directionHuman1 = 1000;
             directionHuman2 = 1000;
             directionHuman3 = 1000;
-            directionRobotHuman1 = 1000;
+            directionRobotFromHuman1 = 1000;
+            directionRobotFromHuman2 = 1000;
+            directionRobotFromHuman3 = 1000;
+            // For log file:
+            // String list to store positions and rotations for log file
+            string[] positionsRotations =  { "_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "_" };
 
-            if (Random.Range(0,2) == 1)
+
+                if (Random.Range(0,2) == 1)
             {
                 usingCircle = 1;
                 usingAarrow = 0;
@@ -381,6 +445,7 @@ class livingRoom : MonoBehaviour
                     Vector3 relativePos = groupCenter - pos;
                     Quaternion rot = Quaternion.LookRotation(relativePos, Vector3.up);
                     temps[i] = Instantiate(objects[i], pos, rot);
+                    positionsRotations[i] = "\"" + temps[i].gameObject.transform.position.ToString() + " " + temps[i].gameObject.transform.rotation.ToString() + "\"";
                     instantatedStandingHumans += 1;
                     agentsInScene += 1;
                 }
@@ -630,6 +695,7 @@ class livingRoom : MonoBehaviour
                 humanYRot = Random.Range(0, 360);
                 Quaternion humanRot = Quaternion.Euler(0, humanYRot, 0);
                 temps[i] = Instantiate(objects[i], humanPos, humanRot);
+                positionsRotations[i] = "\"" + temps[i].gameObject.transform.position.ToString() + " " + temps[i].gameObject.transform.rotation.ToString() + "\"";
                 agentsInScene += 1;
                 instantatedStandingHumans += 1;
             }
@@ -647,6 +713,7 @@ class livingRoom : MonoBehaviour
                 Quaternion humanRot = Quaternion.Euler(0, humanYRot, 0);
                 objects[6].gameObject.transform.localScale = new Vector3(1, 1, 1);
                 temps[6] = Instantiate(objects[6], humanPos, humanRot);
+                positionsRotations[6] = "\"" + temps[6].gameObject.transform.position.ToString() + " " + temps[6].gameObject.transform.rotation.ToString() + "\"";
                 agentsInScene += 1;
                 if (nPeopleSofa > 1)
                 {
@@ -655,6 +722,7 @@ class livingRoom : MonoBehaviour
                     humanRot = Quaternion.Euler(0, humanYRot, 0);
                     objects[7].gameObject.transform.localScale = new Vector3(1, 1, 1);
                     temps[7] = Instantiate(objects[7], humanPos, humanRot);
+                    positionsRotations[7] = "\"" + temps[7].gameObject.transform.position.ToString() + " " + temps[7].gameObject.transform.rotation.ToString() + "\"";
                     agentsInScene += 1;
                 }
 
@@ -685,10 +753,11 @@ class livingRoom : MonoBehaviour
                 Quaternion childRot = Quaternion.Euler(0, childYRot, 0);
                 objects[8].gameObject.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
                 temps[8] = Instantiate(objects[8], childPos, childRot);
+                positionsRotations[8] = "\"" + temps[8].gameObject.transform.position.ToString() + " " + temps[8].gameObject.transform.rotation.ToString() + "\"";
                 nChildren += 1;
                 agentsInScene += 1;
                 distChildren = Vector3.Distance(childPos, tempPepper.gameObject.transform.position);
-                // Have to childsren 50% of the time
+                // Have two children 50% of the time
                 if (Random.Range(0,2) == 1)
                 {
                     // Spawn second child
@@ -707,6 +776,7 @@ class livingRoom : MonoBehaviour
                     childRot = Quaternion.Euler(0, childYRot, 0);
                     objects[9].gameObject.transform.localScale = new Vector3(0.75f, 0.75f, 0.75f);
                     temps[9] = Instantiate(objects[9], childPos, childRot);
+                    positionsRotations[9] = "\"" + temps[9].gameObject.transform.position.ToString() + " " + temps[9].gameObject.transform.rotation.ToString() + "\"";
                     agentsInScene += 1;
                     nChildren += 1;
                     if (Vector3.Distance(childPos, tempPepper.gameObject.transform.position) < distChildren)
@@ -741,6 +811,7 @@ class livingRoom : MonoBehaviour
                 Quaternion animalRot = Quaternion.Euler(0, animalYRot, 0);
                 objects[10].gameObject.transform.localScale = new Vector3(70, 70, 70);
                 temps[10] = Instantiate(objects[10], animalPos, animalRot);
+                positionsRotations[10] = "\"" + temps[10].gameObject.transform.position.ToString() + " " + temps[10].gameObject.transform.rotation.ToString() + "\"";
                 agentsInScene += 1;
                 nAnimal = 1;
                 distAnimal = Vector3.Distance(animalPos, tempPepper.gameObject.transform.position);
@@ -751,7 +822,7 @@ class livingRoom : MonoBehaviour
                 nAnimal = 0;
             }
 
-            // Find distance to the 3 closest humans:
+            // Find distance and direction to the 3 closest humans:
             // Iterate over all standing humans, not children or animals!
 
             for (int i = 0; i < instantatedStandingHumans; i++)
@@ -778,7 +849,7 @@ class livingRoom : MonoBehaviour
                             // Find closest humans rotation as well
                             Quaternion closestHumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
                             temp_rot = closestHumanRot.eulerAngles - temps[i].gameObject.transform.rotation.eulerAngles;
-                            directionRobotHuman1 = temp_rot[1];
+                            directionRobotFromHuman1 = temp_rot[1];
                         }
                         else
                         {
@@ -793,6 +864,10 @@ class livingRoom : MonoBehaviour
                             pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
                             Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
                             directionHuman2 = temp_rot[1];
+                            // Find closest humans rotation as well
+                            Quaternion closest2HumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
+                            temp_rot = closest2HumanRot.eulerAngles - temps[i].gameObject.transform.rotation.eulerAngles;
+                            directionRobotFromHuman2 = temp_rot[1];
                         }
                     }
                     else
@@ -806,6 +881,10 @@ class livingRoom : MonoBehaviour
                         pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
                         Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
                         directionHuman3 = temp_rot[1];
+                        // Find closest humans rotation as well
+                        Quaternion closest3HumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
+                        temp_rot = closest3HumanRot.eulerAngles - temps[i].gameObject.transform.rotation.eulerAngles;
+                        directionRobotFromHuman3 = temp_rot[1];
                     }
                 }
             }
@@ -833,7 +912,7 @@ class livingRoom : MonoBehaviour
                             // Find closest humans rotation as well
                             Quaternion closestHumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
                             temp_rot = closestHumanRot.eulerAngles - temps[i+8].gameObject.transform.rotation.eulerAngles;
-                            directionRobotHuman1 = temp_rot[1];
+                            directionRobotFromHuman1 = temp_rot[1];
                         }
                         else
                         {
@@ -847,6 +926,10 @@ class livingRoom : MonoBehaviour
                             pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
                             Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
                             directionHuman2 = temp_rot[1];
+                            // Find closest humans rotation as well
+                            Quaternion closest2HumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
+                            temp_rot = closest2HumanRot.eulerAngles - temps[i + 8].gameObject.transform.rotation.eulerAngles;
+                            directionRobotFromHuman2 = temp_rot[1];
                         }
                     }
                     else
@@ -859,6 +942,10 @@ class livingRoom : MonoBehaviour
                         pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
                         Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
                         directionHuman3 = temp_rot[1];
+                        // Find closest humans rotation as well
+                        Quaternion closest3HumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
+                        temp_rot = closest3HumanRot.eulerAngles - temps[i + 8].gameObject.transform.rotation.eulerAngles;
+                        directionRobotFromHuman2 = temp_rot[1];
                     }
                 }
             }
@@ -884,10 +971,6 @@ class livingRoom : MonoBehaviour
                             pepperRot = Quaternion.LookRotation(relativePos, Vector3.up);
                             Vector3 temp_rot = pepperRot.eulerAngles - tempPepper.gameObject.transform.rotation.eulerAngles;
                             directionHuman1 = temp_rot[1];
-                            // Find closest humans rotation as well
-                            Quaternion closestHumanRot = Quaternion.LookRotation(-relativePos, Vector3.up);
-                            temp_rot = closestHumanRot.eulerAngles - temps[i + 6].gameObject.transform.rotation.eulerAngles;
-                            directionRobotHuman1 = temp_rot[1];
                         }
                         else
                         {
@@ -918,63 +1001,22 @@ class livingRoom : MonoBehaviour
             }
 
             // Make sure we only have positive angles
-            if (directionHuman1 < 0)
-                {
-                    directionHuman1 += 360;
-                }
-           
-            if (directionHuman2 < 0)
-                {
-                    directionHuman2 += 360;
-                }
-            
-            if (directionHuman3 < 0)
-                {
-                    directionHuman3 += 360;
-                }
-            if (directionRobotHuman1 < 0)
-                {
-                    directionRobotHuman1 += 360;
-                }
+            directionHuman1 = fixAngle(directionHuman1);
+            directionHuman2 = fixAngle(directionHuman2);
+            directionHuman3 = fixAngle(directionHuman3);
+            directionRobotFromHuman1 = fixAngle(directionRobotFromHuman1);
+            directionRobotFromHuman2 = fixAngle(directionRobotFromHuman2);
+            directionRobotFromHuman3 = fixAngle(directionRobotFromHuman3);
 
-            
-            // Determmine wether pepper is facing closest human
-            if (Mathf.Abs(directionHuman1) < 45 || Mathf.Abs(directionHuman1) > 320)
-            {
-                robotFacingHuman1 = 1;
-            }
-            else if (robotWithinGroup == 1)
-            {
-                robotFacingHuman1 = 1;
-            }
-            else
-            {
-                robotFacingHuman1 = 0;
-            }
+            // Check facing
+            robotFacingHuman1 = facingOrNot(directionHuman1);
+            robotFacingHuman2 = facingOrNot(directionHuman2);
+            robotFacingHuman3 = facingOrNot(directionHuman3);
+            human1FacingRobot = facingOrNot(directionRobotFromHuman1);
+            human2FacingRobot = facingOrNot(directionRobotFromHuman2);
+            human3FacingRobot = facingOrNot(directionRobotFromHuman3);
 
-            // Determine wether closest human is facing pepper
-            if (Mathf.Abs(directionRobotHuman1) < 45 || Mathf.Abs(directionRobotHuman1) > 320)
-            {
-                human1FacingRobot = 1;
-            }
-            else if (robotWithinGroup == 1)
-            {
-                human1FacingRobot = 1;
-            }
-            else
-            {
-                human1FacingRobot = 0;
-            }
 
-            // Account for the case when there is not enugh people
-            if (directionHuman1 == 1000)
-            {
-                robotFacingHuman1 = 0;
-            }
-            if (directionRobotHuman1 == 1000)
-            {
-                human1FacingRobot = 0;
-            }
 
             // Add potential music
             if (Random.Range(0,10) == 1)
@@ -997,14 +1039,15 @@ class livingRoom : MonoBehaviour
             // Construct filename:
             string filename = count.ToString() + "_" + usingCircle.ToString() + "_" + usingAarrow.ToString() + "_" +  nPeople.ToString() + "_" + nPeopleGroup.ToString() + "_" + groupRadius.ToString() + "_" + distGroup.ToString() + "_" + robotWithinGroup.ToString()
                 + "_" + facingGroup.ToString() + "_" + robotRadius.ToString()  + "_" + distHuman1.ToString() + "_" + distHuman2.ToString() + "_" + distHuman3.ToString()
-                + "_" + directionHuman1.ToString() + "_" + directionHuman2.ToString() + "_" + directionHuman3.ToString() + "_" + directionRobotHuman1.ToString() + "_" + robotFacingHuman1.ToString() + "_" + human1FacingRobot.ToString() + "_" + nChildren.ToString() + "_" + distChildren.ToString()
+                + "_" + directionHuman1.ToString() + "_" + directionHuman2.ToString() + "_" + directionHuman3.ToString() + "_" + directionRobotFromHuman1.ToString() + "_" + robotFacingHuman1.ToString() + "_" + robotFacingHuman2.ToString() + "_" + robotFacingHuman3.ToString() + "_" + human1FacingRobot.ToString() + "_" + human2FacingRobot.ToString() + "_" + human3FacingRobot.ToString() + "_" + nChildren.ToString() + "_" + distChildren.ToString()
                 + "_" + nAnimal.ToString() + "_" + nPeopleSofa.ToString() + "_" + agentsInScene.ToString();
 
             // Take screenshot and save to path
             ScreenCapture.CaptureScreenshot("data/screenshots/" + filename + ".png");
             string filePath = "data/screenshots/" + filename + ".png";
+            positionsRotations[11] = "\"" + tempPepper.gameObject.transform.position.ToString() + " " + tempPepper.gameObject.transform.rotation.ToString() + "\"";
             // Write features to csv
-            AppendToReport(new string[27] {
+            AppendToReport(new string[43] {
                 count.ToString(),
                 filePath,
                 usingCircle.ToString(),
@@ -1022,17 +1065,34 @@ class livingRoom : MonoBehaviour
                 directionHuman1.ToString(),
                 directionHuman2.ToString(),
                 directionHuman3.ToString(),
-                directionRobotHuman1.ToString(),
+                directionRobotFromHuman1.ToString(),
                 robotFacingHuman1.ToString(),
+                robotFacingHuman2.ToString(),
+                robotFacingHuman3.ToString(),
                 human1FacingRobot.ToString(),
+                human2FacingRobot.ToString(),
+                human3FacingRobot.ToString(),
                 nChildren.ToString(),
                 distChildren.ToString(),
                 nAnimal.ToString(),
                 distAnimal.ToString(),
                 nPeopleSofa.ToString(),
                 musicPlaying.ToString(),
-                agentsInScene.ToString() });
+                agentsInScene.ToString(),
+                positionsRotations[0],
+                positionsRotations[1],
+                positionsRotations[2],
+                positionsRotations[3],
+                positionsRotations[4],
+                positionsRotations[5],
+                positionsRotations[6],
+                positionsRotations[7],
+                positionsRotations[8],
+                positionsRotations[9],
+                positionsRotations[10],
+                positionsRotations[11]});
 
+            
 
             // Remove all gameobjects
             // Pepper
@@ -1042,11 +1102,14 @@ class livingRoom : MonoBehaviour
             // Sound
             Destroy(tempSound, 0.05f);
 
+
             for (int i = 0; i < 11; i++)
             {
+             
                 Destroy(temps[i], 0.05f);
             }
 
+            
             yield return new WaitForSeconds(0.1f);
             count += 1;
         }
