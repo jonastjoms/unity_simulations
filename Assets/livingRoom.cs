@@ -378,7 +378,7 @@ class livingRoom : MonoBehaviour
 
     IEnumerator SpawnRandom(List<GameObject> objects, List<GameObject> temps)
     {
-        while (count < 20)
+        while (count < 100)
         {
 
             instantatedStandingHumans = 0;
