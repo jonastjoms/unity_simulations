@@ -263,7 +263,7 @@ class livingRoom : MonoBehaviour
 
     private static void AppendToReport(string[] strings)
     {
-        using (StreamWriter sw = File.AppendText("data/features.csv"))
+        using (StreamWriter sw = File.AppendText("data/features3.csv"))
         {
             string finalString = "";
             for (int i = 0; i < strings.Length; i++)
@@ -281,7 +281,7 @@ class livingRoom : MonoBehaviour
 
     private static void CreateReport()
     {
-        using (StreamWriter sw = File.CreateText("data/features.csv"))
+        using (StreamWriter sw = File.CreateText("data/features3.csv"))
         {
             string finalString = "";
             for (int i = 0; i < reportHeaders.Length; i++)
@@ -394,6 +394,7 @@ class livingRoom : MonoBehaviour
             directionRobotFromHuman1 = 1000;
             directionRobotFromHuman2 = 1000;
             directionRobotFromHuman3 = 1000;
+            int countForFilename = count + 150;  // Add the number of scenes provided so far
             // For log file:
             // String list to store positions and rotations for log file
             string[] positionsRotations =  { "_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "_" };
@@ -1036,8 +1037,10 @@ class livingRoom : MonoBehaviour
                 myText.text = "";
                 musicPlaying = 0;
             }
+
+          
             // Construct filename:
-            string filename = count.ToString() + "_" + usingCircle.ToString() + "_" + usingAarrow.ToString() + "_" +  nPeople.ToString() + "_" + nPeopleGroup.ToString() + "_" + groupRadius.ToString() + "_" + distGroup.ToString() + "_" + robotWithinGroup.ToString()
+            string filename = countForFilename.ToString() + "_" + usingCircle.ToString() + "_" + usingAarrow.ToString() + "_" +  nPeople.ToString() + "_" + nPeopleGroup.ToString() + "_" + groupRadius.ToString() + "_" + distGroup.ToString() + "_" + robotWithinGroup.ToString()
                 + "_" + facingGroup.ToString() + "_" + robotRadius.ToString()  + "_" + distHuman1.ToString() + "_" + distHuman2.ToString() + "_" + distHuman3.ToString()
                 + "_" + directionHuman1.ToString() + "_" + directionHuman2.ToString() + "_" + directionHuman3.ToString() + "_" + directionRobotFromHuman1.ToString() + "_" + robotFacingHuman1.ToString() + "_" + robotFacingHuman2.ToString() + "_" + robotFacingHuman3.ToString() + "_" + human1FacingRobot.ToString() + "_" + human2FacingRobot.ToString() + "_" + human3FacingRobot.ToString() + "_" + nChildren.ToString() + "_" + distChildren.ToString()
                 + "_" + nAnimal.ToString() + "_" + nPeopleSofa.ToString() + "_" + agentsInScene.ToString();
@@ -1048,7 +1051,7 @@ class livingRoom : MonoBehaviour
             positionsRotations[11] = "\"" + tempPepper.gameObject.transform.position.ToString() + " " + tempPepper.gameObject.transform.rotation.ToString() + "\"";
             // Write features to csv
             AppendToReport(new string[43] {
-                count.ToString(),
+                countForFilename.ToString(),
                 filePath,
                 usingCircle.ToString(),
                 usingAarrow.ToString(),
