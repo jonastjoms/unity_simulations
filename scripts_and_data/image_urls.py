@@ -8,8 +8,8 @@ dirs = os.listdir(path)
 
 dict = {}
 
-with open('data/features3.csv','r') as csvinput:
-    with open('images3.csv', 'w') as csvoutput:
+with open('data/features4.csv','r') as csvinput:
+    with open('images4.csv', 'w') as csvoutput:
         writer = csv.writer(csvoutput, lineterminator='\n')
         reader = csv.reader(csvinput)
         all = []

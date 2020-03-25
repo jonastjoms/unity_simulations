@@ -263,7 +263,7 @@ class livingRoom : MonoBehaviour
 
     private static void AppendToReport(string[] strings)
     {
-        using (StreamWriter sw = File.AppendText("data/features3.csv"))
+        using (StreamWriter sw = File.AppendText("data/features4.csv"))
         {
             string finalString = "";
             for (int i = 0; i < strings.Length; i++)
@@ -281,7 +281,7 @@ class livingRoom : MonoBehaviour
 
     private static void CreateReport()
     {
-        using (StreamWriter sw = File.CreateText("data/features3.csv"))
+        using (StreamWriter sw = File.CreateText("data/features4.csv"))
         {
             string finalString = "";
             for (int i = 0; i < reportHeaders.Length; i++)
@@ -394,7 +394,7 @@ class livingRoom : MonoBehaviour
             directionRobotFromHuman1 = 1000;
             directionRobotFromHuman2 = 1000;
             directionRobotFromHuman3 = 1000;
-            int countForFilename = count + 150;  // Add the number of scenes provided so far
+            int countForFilename = count + 250;  // Add the number of scenes provided so far
             // For log file:
             // String list to store positions and rotations for log file
             string[] positionsRotations =  { "_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "_", "_" };
